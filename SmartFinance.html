@@ -162,11 +162,19 @@
               <i class="fa-solid fa-plus"></i> Añadir Movimiento
             </button>
           </form>
+
+          <!-- SECCIÓN DE REUTILIZACIÓN RÁPIDA -->
+          <div class="mt-4 pt-4 border-t border-slate-800/80">
+            <span class="text-[11px] text-slate-400 font-semibold block mb-2">⚡ Reutilizar Movimiento Habitual</span>
+            <div id="quickReuseList" class="flex flex-wrap gap-2">
+              <p class="text-[11px] text-slate-500">Registra un movimiento para reutilizarlo rápidamente.</p>
+            </div>
+          </div>
         </div>
 
       </div>
 
-      <!-- Columna Derecha: Métricas, Gráficos e IA -->
+      <!-- Columna Derecha: Métricas, Historial e IA -->
       <div class="lg:col-span-7 space-y-6">
 
         <!-- Progreso Sincronizado -->
@@ -184,6 +192,16 @@
 
           <div id="summary">
             <p class="text-xs text-slate-500">Ingresa una meta a la izquierda y presiona "Calcular Plan".</p>
+          </div>
+        </div>
+
+        <!-- Historial Completo con Botón para Duplicar/Reutilizar -->
+        <div class="bg-slate-900/60 backdrop-blur-xl p-6 rounded-3xl border border-slate-800/80 shadow-2xl">
+          <h2 class="text-base font-bold mb-3 text-slate-300 flex items-center gap-2">
+            <i class="fa-solid fa-clock-rotate-left"></i> Historial (Toca 🔁 para repetir)
+          </h2>
+          <div id="historyList" class="space-y-2 max-h-40 overflow-y-auto pr-1">
+            <p class="text-xs text-slate-500 text-center py-2">No hay movimientos guardados.</p>
           </div>
         </div>
 
@@ -228,7 +246,7 @@
       return "Gs. " + new Intl.NumberFormat('es-PY').format(amount);
     }
 
-    // Esperar inicialización de Firebase
+    // Inicialización al cargar la ventana
     window.addEventListener('load', () => {
       const checkInterval = setInterval(() => {
         if (window.firebaseAuth) {
@@ -252,7 +270,7 @@
       }, 100);
     });
 
-    // Cambiar modo Login / Registro
+    // Alternar Login / Registro
     document.getElementById('toggleAuthMode').addEventListener('click', () => {
       isRegisterMode = !isRegisterMode;
       document.getElementById('authTitle').innerText = isRegisterMode ? 'Crear Cuenta' : 'Iniciar Sesión';
@@ -288,12 +306,12 @@
       }
     });
 
-    // Cerrar sesión
+    // Logout
     document.getElementById('logoutBtn').addEventListener('click', () => {
       window.firebaseAuth.signOut(window.firebaseAuth.auth);
     });
 
-    // Sincronización en tiempo real
+    // Escuchar en tiempo real Firestore
     function listenToUserData() {
       const { db, doc, onSnapshot } = window.firebaseAuth;
       const docRef = doc(db, "users", currentUser.uid);
@@ -316,8 +334,71 @@
       await setDoc(doc(db, "users", currentUser.uid), appData);
     }
 
-    // Actualizar pantalla y realizar cálculos
+    // FUNCIÓN GLOBAL PARA REUTILIZAR TRANSACCIONES PASADAS
+    window.reuseTransaction = function(amount, type, note) {
+      if (!appData.transactions) appData.transactions = [];
+      appData.transactions.push({
+        type: type,
+        amount: parseFloat(amount),
+        note: note,
+        date: new Date().toLocaleDateString('es-PY')
+      });
+      updateUI();
+      saveToCloud();
+    };
+
+    // Renderizar Historial e Íconos Rápidos
+    function renderHistoryAndQuickList() {
+      const listDiv = document.getElementById('historyList');
+      const quickDiv = document.getElementById('quickReuseList');
+
+      if (!appData.transactions || appData.transactions.length === 0) {
+        listDiv.innerHTML = `<p class="text-xs text-slate-500 text-center py-2">No hay movimientos guardados.</p>`;
+        quickDiv.innerHTML = `<p class="text-[11px] text-slate-500">Registra un movimiento para reutilizarlo rápidamente.</p>`;
+        return;
+      }
+
+      // Renderizar Historial
+      listDiv.innerHTML = appData.transactions.slice().reverse().map((tx) => `
+        <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="${tx.type === 'deposit' ? 'text-emerald-400' : 'text-red-400'} font-bold">
+              ${tx.type === 'deposit' ? '➕' : '➖'}
+            </span>
+            <div>
+              <p class="font-semibold text-slate-200">${tx.note || (tx.type === 'deposit' ? 'Aporte' : 'Pérdida')}</p>
+              <span class="text-[10px] text-slate-500">${tx.date}</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="font-bold ${tx.type === 'deposit' ? 'text-emerald-400' : 'text-red-400'}">
+              ${tx.type === 'deposit' ? '+' : '-'}${formatPYG(tx.amount)}
+            </span>
+            <button onclick="reuseTransaction('${tx.amount}', '${tx.type}', '${tx.note}')" title="Repetir este movimiento" class="bg-slate-800 hover:bg-slate-700 text-slate-300 p-1.5 rounded-lg border border-slate-700 active:scale-95">
+              🔁
+            </button>
+          </div>
+        </div>
+      `).join('');
+
+      // Renderizar Botones Únicos Rápidos
+      const uniqueTx = Array.from(new Set(appData.transactions.map(t => JSON.stringify({ amount: t.amount, type: t.type, note: t.note }))))
+                            .map(s => JSON.parse(s))
+                            .slice(-4);
+
+      quickDiv.innerHTML = uniqueTx.map(tx => `
+        <button onclick="reuseTransaction('${tx.amount}', '${tx.type}', '${tx.note}')" class="text-[11px] bg-slate-950 border border-slate-800 hover:border-indigo-500/50 px-2.5 py-1.5 rounded-xl flex items-center gap-1 text-slate-300 active:scale-95">
+          <span>${tx.type === 'deposit' ? '➕' : '➖'}</span>
+          <span>${formatPYG(tx.amount)}</span>
+          <span class="text-slate-500">(${tx.note || 'Sin nota'})</span>
+        </button>
+      `).join('');
+    }
+
+    // Actualizar Panel
     function updateUI() {
+      renderHistoryAndQuickList();
+
       if (!appData.cost || !appData.targetDate) return;
 
       const totalSaved = (appData.transactions || []).reduce((acc, tx) => tx.type === 'deposit' ? acc + tx.amount : acc - tx.amount, 0);
@@ -394,18 +475,18 @@
       });
     }
 
-    // EVENTO: Formulario Calcular Plan
+    // Formulario Calcular Plan
     document.getElementById('financeForm').addEventListener('submit', (e) => {
       e.preventDefault();
       appData.item = document.getElementById('goalItem').value;
       appData.cost = parseFloat(document.getElementById('goalCost').value);
       appData.targetDate = document.getElementById('targetDate').value;
       
-      updateUI(); // Calcular en pantalla de inmediato
-      saveToCloud(); // Sincronizar en la nube
+      updateUI();
+      saveToCloud();
     });
 
-    // EVENTO: Botón Nube Secundario
+    // Botón Nube Secundario
     document.getElementById('saveCloudBtn').addEventListener('click', () => {
       if (!document.getElementById('goalCost').value) return;
       appData.item = document.getElementById('goalItem').value;
@@ -416,7 +497,7 @@
       saveToCloud();
     });
 
-    // EVENTO: Transacción (+ / -)
+    // Guardar Nueva Transacción
     document.getElementById('transactionForm').addEventListener('submit', (e) => {
       e.preventDefault();
       const type = document.getElementById('txType').value;
@@ -433,7 +514,7 @@
       saveToCloud();
     });
 
-    // EVENTO: Consultar IA
+    // Consultar Groq IA
     document.getElementById('askAiBtn').addEventListener('click', async () => {
       if (!appData.cost) return;
       const aiDiv = document.getElementById('aiResponse');
