@@ -17,7 +17,6 @@
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // Configuración de tu proyecto Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyCMN5nyM-A5DAIlrVjDEBXbtztwhEp34gM",
       authDomain: "smartfinance-1f85a.firebaseapp.com",
@@ -34,100 +33,124 @@
     window.firebaseAuth = { auth, db, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, doc, setDoc, onSnapshot };
   </script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased pb-12 selection:bg-indigo-500 selection:text-white bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950/40 via-slate-950 to-slate-950">
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased pb-10 selection:bg-indigo-500 selection:text-white bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950/40 via-slate-950 to-slate-950">
 
   <!-- MODAL INICIO DE SESIÓN / REGISTRO -->
   <div id="authModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-xl z-50 flex items-center justify-center p-4">
-    <div class="bg-slate-900/90 border border-indigo-500/20 p-6 md:p-8 rounded-3xl w-full max-w-md shadow-2xl shadow-indigo-950/50">
+    <div class="bg-slate-900/90 border border-indigo-500/20 p-6 rounded-3xl w-full max-w-md shadow-2xl">
       <div class="text-center mb-6">
-        <div class="w-14 h-14 bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-indigo-500/30">
-          <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
+        <div class="w-12 h-12 bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-indigo-500/30">
+          <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
         </div>
-        <h2 id="authTitle" class="text-2xl font-black text-white tracking-tight">Iniciar Sesión</h2>
+        <h2 id="authTitle" class="text-xl font-black text-white">Iniciar Sesión</h2>
         <p class="text-xs text-slate-400 mt-1">Sincroniza tus metas en iOS, Android y PC</p>
       </div>
 
-      <form id="authForm" class="space-y-4">
+      <form id="authForm" class="space-y-3.5">
         <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1.5">Correo Electrónico</label>
-          <input type="email" id="authEmail" required placeholder="tu@correo.com" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all">
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Correo Electrónico</label>
+          <input type="email" id="authEmail" required placeholder="tu@correo.com" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white text-sm outline-none">
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1.5">Contraseña</label>
-          <input type="password" id="authPassword" required placeholder="••••••••" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all">
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Contraseña</label>
+          <input type="password" id="authPassword" required placeholder="••••••••" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white text-sm outline-none">
         </div>
 
-        <div id="authError" class="text-xs text-red-400 hidden text-center bg-red-950/30 p-2.5 rounded-xl border border-red-500/20 font-medium"></div>
+        <div id="authError" class="text-xs text-red-400 hidden text-center bg-red-950/30 p-2.5 rounded-xl border border-red-500/20"></div>
 
-        <button type="submit" id="authSubmitBtn" class="w-full bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-indigo-600/30 text-sm active:scale-[0.98]">
+        <button type="submit" id="authSubmitBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg text-sm">
           Entrar
         </button>
       </form>
 
-      <div class="text-center mt-5">
-        <button id="toggleAuthMode" class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors font-medium">
+      <div class="text-center mt-4">
+        <button id="toggleAuthMode" class="text-xs text-indigo-400 font-medium">
           ¿No tienes cuenta? Regístrate aquí
         </button>
       </div>
     </div>
   </div>
 
+  <!-- MODAL DE HISTORIAL COMPLETO Y GESTIÓN -->
+  <div id="historyModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-xl z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 p-5 md:p-6 rounded-3xl w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh]">
+      <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-slate-200 flex items-center gap-2">
+          <i class="fa-solid fa-clock-rotate-left text-indigo-400"></i> Historial de Movimientos
+        </h3>
+        <button id="closeHistoryBtn" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div id="historyModalList" class="space-y-2 overflow-y-auto pr-1 flex-1">
+        <p class="text-xs text-slate-500 text-center py-4">No hay movimientos guardados.</p>
+      </div>
+
+      <div class="mt-4 pt-3 border-t border-slate-800 text-right">
+        <button id="closeHistoryBtn2" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold px-4 py-2 rounded-xl">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- APLICACIÓN PRINCIPAL -->
-  <div id="mainApp" class="max-w-6xl mx-auto px-4 py-6 hidden">
+  <div id="mainApp" class="max-w-5xl mx-auto px-3.5 py-4 hidden">
     
     <!-- Navbar -->
-    <header class="flex justify-between items-center mb-8 bg-slate-900/60 border border-slate-800/80 p-4 rounded-2xl backdrop-blur-xl shadow-xl">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white flex items-center justify-center font-bold text-base shadow-md shadow-indigo-500/20">
+    <header class="flex justify-between items-center mb-5 bg-slate-900/60 border border-slate-800/80 px-4 py-3 rounded-2xl backdrop-blur-xl">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white flex items-center justify-center font-bold text-sm">
           <i class="fa-solid fa-wallet"></i>
         </div>
         <div>
-          <h1 class="text-sm font-extrabold text-white tracking-wide">SmartFinance Cloud</h1>
-          <p id="userEmailDisplay" class="text-[11px] text-slate-400 font-medium">Cargando perfil...</p>
+          <h1 class="text-xs font-extrabold text-white tracking-wide">SmartFinance Cloud</h1>
+          <p id="userEmailDisplay" class="text-[10px] text-slate-400">Cargando...</p>
         </div>
       </div>
-      <button id="logoutBtn" class="text-xs bg-slate-950 hover:bg-red-950/40 text-slate-400 hover:text-red-400 border border-slate-800/80 px-3.5 py-2 rounded-xl transition-all font-semibold active:scale-95">
-        <i class="fa-solid fa-right-from-bracket mr-1.5"></i> Salir
+      <button id="logoutBtn" class="text-[11px] bg-slate-950 hover:bg-red-950/40 text-slate-400 hover:text-red-400 border border-slate-800 px-3 py-1.5 rounded-xl transition-all">
+        <i class="fa-solid fa-right-from-bracket mr-1"></i> Salir
       </button>
     </header>
 
-    <div class="grid lg:grid-cols-12 gap-6">
+    <div class="grid lg:grid-cols-12 gap-4">
       
       <!-- Columna Izquierda: Formulario & Transacciones -->
-      <div class="lg:col-span-5 space-y-6">
+      <div class="lg:col-span-5 space-y-4">
         
         <!-- Tarjeta de Meta -->
-        <div class="bg-slate-900/60 backdrop-blur-xl p-6 rounded-3xl border border-slate-800/80 shadow-2xl relative overflow-hidden">
-          <div class="absolute -top-12 -right-12 w-28 h-28 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
-          
-          <h2 class="text-base font-bold mb-4 text-indigo-400 flex items-center gap-2">
+        <div class="bg-slate-900/60 backdrop-blur-xl p-4 md:p-5 rounded-3xl border border-slate-800/80 shadow-xl">
+          <h2 class="text-sm font-bold mb-3 text-indigo-400 flex items-center gap-2">
             <i class="fa-solid fa-bullseye"></i> Tu Meta Financiera
           </h2>
           
-          <form id="financeForm" class="space-y-3.5">
+          <form id="financeForm" class="space-y-3">
             <div>
-              <label class="block text-xs font-semibold text-slate-300 mb-1">¿Qué quieres comprar?</label>
-              <input type="text" id="goalItem" required placeholder="Ej: Moto / Laptop" class="w-full bg-slate-950/80 border border-slate-800/80 rounded-xl px-4 py-2.5 text-white text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all">
+              <label class="block text-[11px] font-semibold text-slate-300 mb-1">¿Qué quieres comprar?</label>
+              <input type="text" id="goalItem" required placeholder="Ej: Moto / Laptop" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3.5 py-2 text-white text-xs outline-none focus:border-indigo-500">
             </div>
 
-            <div>
-              <label class="block text-xs font-semibold text-slate-300 mb-1">Costo Total (Gs.)</label>
-              <input type="number" id="goalCost" required placeholder="Ej: 5000000" class="w-full bg-slate-950/80 border border-slate-800/80 rounded-xl px-4 py-2.5 text-white text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all">
-            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-300 mb-1">Costo (Gs.)</label>
+                <input type="number" id="goalCost" required placeholder="Ej: 5000000" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs outline-none focus:border-indigo-500">
+              </div>
 
-            <div>
-              <label class="block text-xs font-semibold text-slate-300 mb-1">Fecha Límite</label>
-              <input type="date" id="targetDate" required class="w-full bg-slate-950/80 border border-slate-800/80 rounded-xl px-4 py-2.5 text-white text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all">
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-300 mb-1">Fecha Límite</label>
+                <input type="date" id="targetDate" required class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-2.5 py-2 text-white text-xs outline-none focus:border-indigo-500">
+              </div>
             </div>
 
             <!-- Botones de Acción -->
-            <div class="grid grid-cols-2 gap-2 pt-2">
-              <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition-all text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 active:scale-95">
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20 active:scale-95">
                 <i class="fa-solid fa-calculator"></i> Calcular Plan
               </button>
 
-              <button type="button" id="saveCloudBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 rounded-xl transition-all text-xs flex items-center justify-center gap-2 border border-slate-700/80 active:scale-95">
+              <button type="button" id="saveCloudBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-slate-700/80 active:scale-95">
                 <i class="fa-solid fa-cloud-arrow-up text-cyan-400"></i> Nube
               </button>
             </div>
@@ -135,58 +158,63 @@
         </div>
 
         <!-- Tarjeta para Registrar Movimientos -->
-        <div class="bg-slate-900/60 backdrop-blur-xl p-6 rounded-3xl border border-slate-800/80 shadow-2xl">
-          <h2 class="text-base font-bold mb-3 text-emerald-400 flex items-center gap-2">
-            <i class="fa-solid fa-money-bill-transfer"></i> Registrar Dinero
-          </h2>
+        <div class="bg-slate-900/60 backdrop-blur-xl p-4 md:p-5 rounded-3xl border border-slate-800/80 shadow-xl">
+          <div class="flex justify-between items-center mb-3">
+            <h2 class="text-sm font-bold text-emerald-400 flex items-center gap-2">
+              <i class="fa-solid fa-money-bill-transfer"></i> Registrar Dinero
+            </h2>
+            <button id="openHistoryBtn" class="text-[11px] bg-slate-950 hover:bg-slate-800 border border-slate-800 text-indigo-400 font-semibold px-2.5 py-1 rounded-xl flex items-center gap-1">
+              <i class="fa-solid fa-clock-rotate-left"></i> Historial
+            </button>
+          </div>
 
-          <form id="transactionForm" class="space-y-3">
+          <form id="transactionForm" class="space-y-2.5">
             <div class="grid grid-cols-2 gap-2">
               <div>
-                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Tipo</label>
-                <select id="txType" class="w-full bg-slate-950 border border-slate-800/80 rounded-xl px-3 py-2 text-white text-xs outline-none">
+                <label class="block text-[10px] font-semibold text-slate-400 mb-1">Tipo</label>
+                <select id="txType" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-white text-xs outline-none">
                   <option value="deposit">➕ Aporte (+)</option>
                   <option value="loss">➖ Pérdida (-)</option>
                 </select>
               </div>
               <div>
-                <label class="block text-[11px] font-semibold text-slate-400 mb-1">Monto (Gs.)</label>
-                <input type="number" id="txAmount" required placeholder="Ej: 200000" class="w-full bg-slate-950 border border-slate-800/80 rounded-xl px-3 py-2 text-white text-xs outline-none focus:border-emerald-500">
+                <label class="block text-[10px] font-semibold text-slate-400 mb-1">Monto (Gs.)</label>
+                <input type="number" id="txAmount" required placeholder="Ej: 200000" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs outline-none">
               </div>
             </div>
             <div>
-              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Detalle (Opcional)</label>
-              <input type="text" id="txNote" placeholder="Ej: Ahorro de la semana" class="w-full bg-slate-950 border border-slate-800/80 rounded-xl px-3 py-2 text-white text-xs outline-none focus:border-emerald-500">
+              <label class="block text-[10px] font-semibold text-slate-400 mb-1">Detalle (Opcional)</label>
+              <input type="text" id="txNote" placeholder="Ej: Ahorro de la semana" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs outline-none">
             </div>
-            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl transition-all text-xs shadow-lg shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-1.5">
+            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-xs shadow-md shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-1">
               <i class="fa-solid fa-plus"></i> Añadir Movimiento
             </button>
           </form>
 
-          <!-- SECCIÓN DE REUTILIZACIÓN RÁPIDA -->
-          <div class="mt-4 pt-4 border-t border-slate-800/80">
-            <span class="text-[11px] text-slate-400 font-semibold block mb-2">⚡ Reutilizar Movimiento Habitual</span>
-            <div id="quickReuseList" class="flex flex-wrap gap-2">
-              <p class="text-[11px] text-slate-500">Registra un movimiento para reutilizarlo rápidamente.</p>
+          <!-- SECCIÓN DE REUTILIZACIÓN RÁPIDA DE ESPACIO COMPACTO -->
+          <div class="mt-3 pt-3 border-t border-slate-800/80">
+            <span class="text-[10px] text-slate-400 font-semibold block mb-1.5">⚡ Aportes Habituales</span>
+            <div id="quickReuseList" class="flex flex-wrap gap-1.5">
+              <p class="text-[10px] text-slate-500">Sin atajos guardados aún.</p>
             </div>
           </div>
         </div>
 
       </div>
 
-      <!-- Columna Derecha: Métricas, Historial e IA -->
-      <div class="lg:col-span-7 space-y-6">
+      <!-- Columna Derecha: Métricas, Gráficos e IA -->
+      <div class="lg:col-span-7 space-y-4">
 
         <!-- Progreso Sincronizado -->
-        <div class="bg-slate-900/60 backdrop-blur-xl p-6 rounded-3xl border border-slate-800/80 shadow-2xl">
-          <div class="flex justify-between items-center mb-3">
-            <h2 class="text-base font-bold text-emerald-400 flex items-center gap-2">
+        <div class="bg-slate-900/60 backdrop-blur-xl p-4 md:p-5 rounded-3xl border border-slate-800/80 shadow-xl">
+          <div class="flex justify-between items-center mb-2">
+            <h2 class="text-sm font-bold text-emerald-400 flex items-center gap-2">
               <i class="fa-solid fa-chart-line"></i> Progreso del Plan
             </h2>
-            <span id="progressPercentage" class="text-sm font-black text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20">0%</span>
+            <span id="progressPercentage" class="text-xs font-black text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20">0%</span>
           </div>
 
-          <div class="w-full bg-slate-950 rounded-full h-3.5 p-0.5 border border-slate-800/80 overflow-hidden mb-4">
+          <div class="w-full bg-slate-950 rounded-full h-3 p-0.5 border border-slate-800/80 overflow-hidden mb-3">
             <div id="progressBar" class="bg-gradient-to-r from-indigo-500 via-cyan-400 to-emerald-400 h-full rounded-full transition-all duration-700 ease-out" style="width: 0%"></div>
           </div>
 
@@ -195,37 +223,27 @@
           </div>
         </div>
 
-        <!-- Historial Completo con Botón para Duplicar/Reutilizar -->
-        <div class="bg-slate-900/60 backdrop-blur-xl p-6 rounded-3xl border border-slate-800/80 shadow-2xl">
-          <h2 class="text-base font-bold mb-3 text-slate-300 flex items-center gap-2">
-            <i class="fa-solid fa-clock-rotate-left"></i> Historial (Toca 🔁 para repetir)
-          </h2>
-          <div id="historyList" class="space-y-2 max-h-40 overflow-y-auto pr-1">
-            <p class="text-xs text-slate-500 text-center py-2">No hay movimientos guardados.</p>
-          </div>
-        </div>
-
         <!-- Gráfico de Proyección -->
-        <div class="bg-slate-900/60 backdrop-blur-xl p-6 rounded-3xl border border-slate-800/80 shadow-2xl">
-          <h2 class="text-base font-bold mb-3 text-indigo-400 flex items-center gap-2">
+        <div class="bg-slate-900/60 backdrop-blur-xl p-4 md:p-5 rounded-3xl border border-slate-800/80 shadow-xl">
+          <h2 class="text-sm font-bold mb-2 text-indigo-400 flex items-center gap-2">
             <i class="fa-solid fa-chart-area"></i> Proyección Visual
           </h2>
-          <div class="relative h-44 w-full">
+          <div class="relative h-36 md:h-44 w-full">
             <canvas id="savingsChart"></canvas>
           </div>
         </div>
 
         <!-- Asesor IA Groq -->
-        <div class="bg-slate-900/60 backdrop-blur-xl p-6 rounded-3xl border border-slate-800/80 shadow-2xl">
-          <div class="flex justify-between items-center mb-3">
-            <h2 class="text-base font-bold text-cyan-400 flex items-center gap-2">
+        <div class="bg-slate-900/60 backdrop-blur-xl p-4 md:p-5 rounded-3xl border border-slate-800/80 shadow-xl">
+          <div class="flex justify-between items-center mb-2">
+            <h2 class="text-sm font-bold text-cyan-400 flex items-center gap-2">
               <i class="fa-solid fa-brain"></i> Dictamen IA
             </h2>
-            <button id="askAiBtn" class="text-xs bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 px-3.5 py-1.5 rounded-xl transition-all font-semibold active:scale-95">
+            <button id="askAiBtn" class="text-[11px] bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 px-3 py-1 rounded-xl font-semibold active:scale-95">
               <i class="fa-solid fa-rotate mr-1"></i> Consultar
             </button>
           </div>
-          <div id="aiResponse" class="text-sm text-slate-300 leading-relaxed min-h-[60px] flex items-center justify-center text-center">
+          <div id="aiResponse" class="text-xs text-slate-300 leading-relaxed min-h-[40px] flex items-center justify-center text-center">
             Haz clic en "Consultar" o calcula tu plan para recibir un análisis instantáneo.
           </div>
         </div>
@@ -270,6 +288,12 @@
       }, 100);
     });
 
+    // Control del Modal de Historial
+    const historyModal = document.getElementById('historyModal');
+    document.getElementById('openHistoryBtn').addEventListener('click', () => historyModal.classList.remove('hidden'));
+    document.getElementById('closeHistoryBtn').addEventListener('click', () => historyModal.classList.add('hidden'));
+    document.getElementById('closeHistoryBtn2').addEventListener('click', () => historyModal.classList.add('hidden'));
+
     // Alternar Login / Registro
     document.getElementById('toggleAuthMode').addEventListener('click', () => {
       isRegisterMode = !isRegisterMode;
@@ -311,7 +335,7 @@
       window.firebaseAuth.signOut(window.firebaseAuth.auth);
     });
 
-    // Escuchar en tiempo real Firestore
+    // Escuchar Firestore en tiempo real
     function listenToUserData() {
       const { db, doc, onSnapshot } = window.firebaseAuth;
       const docRef = doc(db, "users", currentUser.uid);
@@ -334,7 +358,7 @@
       await setDoc(doc(db, "users", currentUser.uid), appData);
     }
 
-    // FUNCIÓN GLOBAL PARA REUTILIZAR TRANSACCIONES PASADAS
+    // REUTILIZAR TRANSACCIÓN
     window.reuseTransaction = function(amount, type, note) {
       if (!appData.transactions) appData.transactions = [];
       appData.transactions.push({
@@ -347,55 +371,71 @@
       saveToCloud();
     };
 
-    // Renderizar Historial e Íconos Rápidos
+    // ELIMINAR TRANSACCIÓN
+    window.deleteTransaction = function(index) {
+      if (!appData.transactions) return;
+      appData.transactions.splice(index, 1);
+      updateUI();
+      saveToCloud();
+    };
+
+    // Renderizar Historial Modal e Íconos Rápidos
     function renderHistoryAndQuickList() {
-      const listDiv = document.getElementById('historyList');
+      const modalListDiv = document.getElementById('historyModalList');
       const quickDiv = document.getElementById('quickReuseList');
 
       if (!appData.transactions || appData.transactions.length === 0) {
-        listDiv.innerHTML = `<p class="text-xs text-slate-500 text-center py-2">No hay movimientos guardados.</p>`;
-        quickDiv.innerHTML = `<p class="text-[11px] text-slate-500">Registra un movimiento para reutilizarlo rápidamente.</p>`;
+        modalListDiv.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">No hay movimientos guardados.</p>`;
+        quickDiv.innerHTML = `<p class="text-[10px] text-slate-500">Sin atajos guardados aún.</p>`;
         return;
       }
 
-      // Renderizar Historial
-      listDiv.innerHTML = appData.transactions.slice().reverse().map((tx) => `
-        <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs">
-          <div class="flex items-center gap-2">
-            <span class="${tx.type === 'deposit' ? 'text-emerald-400' : 'text-red-400'} font-bold">
-              ${tx.type === 'deposit' ? '➕' : '➖'}
-            </span>
-            <div>
-              <p class="font-semibold text-slate-200">${tx.note || (tx.type === 'deposit' ? 'Aporte' : 'Pérdida')}</p>
-              <span class="text-[10px] text-slate-500">${tx.date}</span>
+      // Renderizar Modal con Botón de Eliminar
+      const reversedTxs = appData.transactions.slice().reverse();
+      const originalLength = appData.transactions.length;
+
+      modalListDiv.innerHTML = reversedTxs.map((tx, idx) => {
+        const originalIndex = originalLength - 1 - idx;
+        return `
+          <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs">
+            <div class="flex items-center gap-2">
+              <span class="${tx.type === 'deposit' ? 'text-emerald-400' : 'text-red-400'} font-bold">
+                ${tx.type === 'deposit' ? '➕' : '➖'}
+              </span>
+              <div>
+                <p class="font-semibold text-slate-200 text-[11px]">${tx.note || (tx.type === 'deposit' ? 'Aporte' : 'Pérdida')}</p>
+                <span class="text-[9px] text-slate-500">${tx.date}</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="font-bold ${tx.type === 'deposit' ? 'text-emerald-400' : 'text-red-400'} text-[11px]">
+                ${tx.type === 'deposit' ? '+' : '-'}${formatPYG(tx.amount)}
+              </span>
+              <button onclick="reuseTransaction('${tx.amount}', '${tx.type}', '${tx.note}')" title="Repetir" class="bg-slate-800 hover:bg-slate-700 text-slate-300 p-1.5 rounded-lg border border-slate-700 active:scale-95">
+                🔁
+              </button>
+              <button onclick="deleteTransaction(${originalIndex})" title="Eliminar" class="bg-red-950/40 hover:bg-red-900/60 text-red-400 p-1.5 rounded-lg border border-red-800/40 active:scale-95">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
             </div>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="font-bold ${tx.type === 'deposit' ? 'text-emerald-400' : 'text-red-400'}">
-              ${tx.type === 'deposit' ? '+' : '-'}${formatPYG(tx.amount)}
-            </span>
-            <button onclick="reuseTransaction('${tx.amount}', '${tx.type}', '${tx.note}')" title="Repetir este movimiento" class="bg-slate-800 hover:bg-slate-700 text-slate-300 p-1.5 rounded-lg border border-slate-700 active:scale-95">
-              🔁
-            </button>
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
 
-      // Renderizar Botones Únicos Rápidos
+      // Renderizar Atajos Únicos Rápidos
       const uniqueTx = Array.from(new Set(appData.transactions.map(t => JSON.stringify({ amount: t.amount, type: t.type, note: t.note }))))
                             .map(s => JSON.parse(s))
-                            .slice(-4);
+                            .slice(-3);
 
       quickDiv.innerHTML = uniqueTx.map(tx => `
-        <button onclick="reuseTransaction('${tx.amount}', '${tx.type}', '${tx.note}')" class="text-[11px] bg-slate-950 border border-slate-800 hover:border-indigo-500/50 px-2.5 py-1.5 rounded-xl flex items-center gap-1 text-slate-300 active:scale-95">
+        <button onclick="reuseTransaction('${tx.amount}', '${tx.type}', '${tx.note}')" class="text-[10px] bg-slate-950 border border-slate-800 hover:border-indigo-500/50 px-2 py-1 rounded-lg flex items-center gap-1 text-slate-300 active:scale-95">
           <span>${tx.type === 'deposit' ? '➕' : '➖'}</span>
           <span>${formatPYG(tx.amount)}</span>
-          <span class="text-slate-500">(${tx.note || 'Sin nota'})</span>
         </button>
       `).join('');
     }
 
-    // Actualizar Panel
+    // Actualizar Interfaz
     function updateUI() {
       renderHistoryAndQuickList();
 
@@ -413,21 +453,21 @@
       document.getElementById('progressPercentage').innerText = `${progressRatio}%`;
 
       document.getElementById('summary').innerHTML = `
-        <div class="grid grid-cols-3 gap-2 mb-3 text-center">
-          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
-            <span class="text-[10px] text-slate-400 block font-medium">Ahorrado</span>
-            <p class="text-xs font-bold text-emerald-400">${formatPYG(totalSaved)}</p>
+        <div class="grid grid-cols-3 gap-1.5 mb-2.5 text-center">
+          <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
+            <span class="text-[9px] text-slate-400 block font-medium">Ahorrado</span>
+            <p class="text-[11px] font-bold text-emerald-400">${formatPYG(totalSaved)}</p>
           </div>
-          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
-            <span class="text-[10px] text-slate-400 block font-medium">Pendiente</span>
-            <p class="text-xs font-bold text-slate-200">${formatPYG(remainingCost)}</p>
+          <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
+            <span class="text-[9px] text-slate-400 block font-medium">Pendiente</span>
+            <p class="text-[11px] font-bold text-slate-200">${formatPYG(remainingCost)}</p>
           </div>
-          <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
-            <span class="text-[10px] text-slate-400 block font-medium">Semanas</span>
-            <p class="text-xs font-bold text-white">${weeks} sem</p>
+          <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
+            <span class="text-[9px] text-slate-400 block font-medium">Semanas</span>
+            <p class="text-[11px] font-bold text-white">${weeks} sem</p>
           </div>
         </div>
-        <div class="bg-slate-950 p-3 rounded-xl border border-indigo-500/30 flex justify-between items-center text-xs">
+        <div class="bg-slate-950 p-2.5 rounded-xl border border-indigo-500/30 flex justify-between items-center text-[11px]">
           <span class="text-slate-400 font-medium">Ahorro Semanal Requerido:</span>
           <span class="font-extrabold text-indigo-400">${formatPYG(weeklyNeeded)} / sem</span>
         </div>
@@ -460,16 +500,16 @@
           labels: labels,
           datasets: [
             { label: 'Línea Ideal', data: idealData, borderColor: '#6366f1', borderDash: [5, 5] },
-            { label: 'Avance Real', data: realData, borderColor: '#10b981', pointRadius: 4 }
+            { label: 'Avance Real', data: realData, borderColor: '#10b981', pointRadius: 3 }
           ]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10 } } } },
+          plugins: { legend: { labels: { color: '#94a3b8', font: { size: 9 } } } },
           scales: {
-            x: { ticks: { color: '#64748b', font: { size: 9 } } },
-            y: { ticks: { color: '#64748b', font: { size: 9 } } }
+            x: { ticks: { color: '#64748b', font: { size: 8 } } },
+            y: { ticks: { color: '#64748b', font: { size: 8 } } }
           }
         }
       });
@@ -543,7 +583,7 @@
 
         const data = await response.json();
         let reply = data.choices?.[0]?.message?.content || "";
-        aiDiv.innerHTML = `<p class="text-slate-200 text-sm text-left">${reply.replace(/\*/g, "").trim()}</p>`;
+        aiDiv.innerHTML = `<p class="text-slate-200 text-xs text-left">${reply.replace(/\*/g, "").trim()}</p>`;
       } catch (err) {
         aiDiv.innerHTML = "<p class='text-red-400 text-xs'>Error de conexión al consultar la IA.</p>";
       }
