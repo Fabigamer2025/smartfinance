@@ -3,15 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SmartFinance Pro - Sistema de Finanzas</title>
+  <title>SmartFinance Pro</title>
   
-  <!-- Tailwind CSS & FontAwesome -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-  <!-- Chart.js -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
-  <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -33,239 +31,320 @@
     window.firebaseAuth = { auth, db, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, doc, setDoc, onSnapshot };
   </script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased pb-10 selection:bg-indigo-500 selection:text-white bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950/40 via-slate-950 to-slate-950">
+<body class="bg-zinc-950 text-zinc-100 min-h-screen font-sans antialiased pb-20 selection:bg-emerald-500">
 
-  <!-- MODAL INICIO DE SESIÓN / REGISTRO -->
-  <div id="authModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-xl z-50 flex items-center justify-center p-4">
-    <div class="bg-slate-900/90 border border-indigo-500/20 p-6 rounded-3xl w-full max-w-md shadow-2xl">
-      <div class="text-center mb-6">
-        <div class="w-12 h-12 bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-indigo-500/30">
-          <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+  <!-- MODAL LOGIN -->
+  <div id="authModal" class="fixed inset-0 bg-zinc-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div class="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl w-full max-w-sm">
+      <div class="text-center mb-5">
+        <div class="w-10 h-10 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl flex items-center justify-center mx-auto mb-2">
+          <i class="fa-solid fa-vault"></i>
         </div>
-        <h2 id="authTitle" class="text-xl font-black text-white">Iniciar Sesión</h2>
-        <p class="text-xs text-slate-400 mt-1">Sincroniza tus metas en iOS, Android y PC</p>
+        <h2 id="authTitle" class="text-lg font-bold text-white">SmartFinance</h2>
+        <p class="text-[11px] text-zinc-400">Ingresa tus credenciales</p>
       </div>
 
-      <form id="authForm" class="space-y-3.5">
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Correo Electrónico</label>
-          <input type="email" id="authEmail" required placeholder="tu@correo.com" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white text-sm outline-none">
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Contraseña</label>
-          <input type="password" id="authPassword" required placeholder="••••••••" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white text-sm outline-none">
-        </div>
-
-        <div id="authError" class="text-xs text-red-400 hidden text-center bg-red-950/30 p-2.5 rounded-xl border border-red-500/20"></div>
-
-        <button type="submit" id="authSubmitBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg text-sm">
-          Entrar
-        </button>
+      <form id="authForm" class="space-y-3">
+        <input type="email" id="authEmail" required placeholder="Correo electrónico" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-white text-xs outline-none focus:border-emerald-500">
+        <input type="password" id="authPassword" required placeholder="Contraseña" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-white text-xs outline-none focus:border-emerald-500">
+        <div id="authError" class="text-[11px] text-rose-400 hidden text-center bg-rose-950/30 p-2 rounded border border-rose-500/20"></div>
+        <button type="submit" id="authSubmitBtn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-bold py-2.5 rounded-lg text-xs active:scale-95">Entrar</button>
       </form>
 
       <div class="text-center mt-4">
-        <button id="toggleAuthMode" class="text-xs text-indigo-400 font-medium">
-          ¿No tienes cuenta? Regístrate aquí
-        </button>
+        <button id="toggleAuthMode" class="text-[11px] text-zinc-400">¿Sin cuenta? Regístrate</button>
       </div>
     </div>
   </div>
 
-  <!-- MODAL DE HISTORIAL COMPLETO Y GESTIÓN -->
-  <div id="historyModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-xl z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-slate-900 border border-slate-800 p-5 md:p-6 rounded-3xl w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh]">
-      <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
-        <h3 class="text-base font-bold text-slate-200 flex items-center gap-2">
-          <i class="fa-solid fa-clock-rotate-left text-indigo-400"></i> Historial de Movimientos
-        </h3>
-        <button id="closeHistoryBtn" class="text-slate-400 hover:text-white p-1">
-          <i class="fa-solid fa-xmark text-lg"></i>
-        </button>
+  <!-- MODAL HISTORIAL -->
+  <div id="historyModal" class="fixed inset-0 bg-zinc-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl w-full max-w-md max-h-[80vh] flex flex-col">
+      <div class="flex justify-between items-center mb-3 border-b border-zinc-800 pb-2">
+        <h3 class="text-xs font-bold text-zinc-200">Historial Completo</h3>
+        <button id="closeHistoryBtn" class="text-zinc-400"><i class="fa-solid fa-xmark text-base"></i></button>
       </div>
-
-      <div id="historyModalList" class="space-y-2 overflow-y-auto pr-1 flex-1">
-        <p class="text-xs text-slate-500 text-center py-4">No hay movimientos guardados.</p>
-      </div>
-
-      <div class="mt-4 pt-3 border-t border-slate-800 text-right">
-        <button id="closeHistoryBtn2" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold px-4 py-2 rounded-xl">
-          Cerrar
-        </button>
+      <div id="historyModalList" class="space-y-2 overflow-y-auto flex-1 pr-1"></div>
+      <div class="mt-3 pt-2 border-t border-zinc-800 flex justify-between">
+        <button id="exportExcelBtn" class="text-[11px] bg-zinc-800 text-emerald-400 border border-zinc-700 px-3 py-1.5 rounded-lg font-semibold"><i class="fa-solid fa-file-excel mr-1"></i> Excel</button>
+        <button id="closeHistoryBtn2" class="text-[11px] bg-zinc-800 text-zinc-300 px-3 py-1.5 rounded-lg font-semibold">Cerrar</button>
       </div>
     </div>
   </div>
 
   <!-- APLICACIÓN PRINCIPAL -->
-  <div id="mainApp" class="max-w-5xl mx-auto px-3.5 py-4 hidden">
+  <div id="mainApp" class="px-4 py-4 hidden transition-all duration-300">
     
-    <!-- Navbar -->
-    <header class="flex justify-between items-center mb-5 bg-slate-900/60 border border-slate-800/80 px-4 py-3 rounded-2xl backdrop-blur-xl">
-      <div class="flex items-center gap-2.5">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white flex items-center justify-center font-bold text-sm">
+    <!-- Navbar Superior -->
+    <header class="flex justify-between items-center mb-4 bg-zinc-900/90 border border-zinc-800/80 px-4 py-2.5 rounded-xl max-w-6xl mx-auto">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-xs">
           <i class="fa-solid fa-wallet"></i>
         </div>
         <div>
-          <h1 class="text-xs font-extrabold text-white tracking-wide">SmartFinance Cloud</h1>
-          <p id="userEmailDisplay" class="text-[10px] text-slate-400">Cargando...</p>
+          <span class="text-xs font-bold tracking-wider text-white block">SmartFinance</span>
+          <span id="userEmailDisplay" class="text-[10px] text-zinc-400 hidden sm:inline">Cargando...</span>
         </div>
       </div>
-      <button id="logoutBtn" class="text-[11px] bg-slate-950 hover:bg-red-950/40 text-slate-400 hover:text-red-400 border border-slate-800 px-3 py-1.5 rounded-xl transition-all">
-        <i class="fa-solid fa-right-from-bracket mr-1"></i> Salir
-      </button>
+
+      <div class="flex items-center gap-2">
+        <button id="viewToggleBtn" onclick="toggleViewMode()" class="text-xs bg-zinc-950 border border-zinc-800 text-emerald-400 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 active:scale-95 transition-all">
+          <i id="viewToggleIcon" class="fa-solid fa-mobile-screen"></i>
+          <span id="viewToggleText">Modo PC</span>
+        </button>
+
+        <button id="logoutBtn" class="text-xs text-zinc-400 hover:text-rose-400 p-1.5"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+      </div>
     </header>
 
-    <div class="grid lg:grid-cols-12 gap-4">
+    <!-- CONTENEDOR PRINCIPAL QUE SE ADAPTA -->
+    <div id="appLayoutContainer" class="max-w-md mx-auto transition-all duration-300">
       
-      <!-- Columna Izquierda: Formulario & Transacciones -->
-      <div class="lg:col-span-5 space-y-4">
-        
-        <!-- Tarjeta de Meta -->
-        <div class="bg-slate-900/60 backdrop-blur-xl p-4 md:p-5 rounded-3xl border border-slate-800/80 shadow-xl">
-          <h2 class="text-sm font-bold mb-3 text-indigo-400 flex items-center gap-2">
-            <i class="fa-solid fa-bullseye"></i> Tu Meta Financiera
-          </h2>
-          
+      <div id="dashboardGrid" class="space-y-4">
+
+        <!-- BLOQUE BALANCE Y GENERAL -->
+        <div id="card-balance" class="bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
+          <span class="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider block mb-1">Balance General</span>
+          <span id="walletBalanceDisplay" class="text-2xl font-black text-white block mb-3">Gs. 0</span>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="openHistoryBtn" class="bg-zinc-950 border border-zinc-800 py-2 rounded-lg text-xs text-zinc-300 font-semibold flex items-center justify-center gap-1.5"><i class="fa-solid fa-receipt text-emerald-400"></i> Historial</button>
+            <button id="sendWspReminderBtn" class="bg-emerald-600/10 border border-emerald-500/20 py-2 rounded-lg text-xs text-emerald-400 font-semibold flex items-center justify-center gap-1.5"><i class="fa-brands fa-whatsapp"></i> WhatsApp</button>
+          </div>
+        </div>
+
+        <!-- FORMULARIO METAS -->
+        <div id="card-goals-form" class="bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
+          <div class="flex justify-between items-center mb-3">
+            <h2 class="text-xs font-bold text-zinc-200 uppercase tracking-wider">Gestión de Metas</h2>
+            <select id="goalSelector" class="bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1 text-white text-xs outline-none">
+              <option value="new">+ Nueva Meta</option>
+            </select>
+          </div>
+
           <form id="financeForm" class="space-y-3">
             <div>
-              <label class="block text-[11px] font-semibold text-slate-300 mb-1">¿Qué quieres comprar?</label>
-              <input type="text" id="goalItem" required placeholder="Ej: Moto / Laptop" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3.5 py-2 text-white text-xs outline-none focus:border-indigo-500">
+              <label class="block text-[11px] font-medium text-zinc-400 mb-1">Nombre de la Meta</label>
+              <input type="text" id="goalItem" required placeholder="Ej: Moto / Auto" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-white text-xs outline-none">
             </div>
-
             <div class="grid grid-cols-2 gap-2">
               <div>
-                <label class="block text-[11px] font-semibold text-slate-300 mb-1">Costo (Gs.)</label>
-                <input type="number" id="goalCost" required placeholder="Ej: 5000000" class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs outline-none focus:border-indigo-500">
+                <label class="block text-[11px] font-medium text-zinc-400 mb-1">Costo Total (Gs.)</label>
+                <input type="number" id="goalCost" required placeholder="Ej: 5000000" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-white text-xs outline-none">
               </div>
-
               <div>
-                <label class="block text-[11px] font-semibold text-slate-300 mb-1">Fecha Límite</label>
-                <input type="date" id="targetDate" required class="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-2.5 py-2 text-white text-xs outline-none focus:border-indigo-500">
+                <label class="block text-[11px] font-medium text-zinc-400 mb-1">Fecha Límite</label>
+                <input type="date" id="targetDate" required class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-white text-xs outline-none">
               </div>
             </div>
-
-            <!-- Botones de Acción -->
             <div class="grid grid-cols-2 gap-2 pt-1">
-              <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20 active:scale-95">
-                <i class="fa-solid fa-calculator"></i> Calcular Plan
-              </button>
-
-              <button type="button" id="saveCloudBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-slate-700/80 active:scale-95">
-                <i class="fa-solid fa-cloud-arrow-up text-cyan-400"></i> Nube
-              </button>
+              <button type="submit" class="bg-emerald-600 text-zinc-950 font-bold py-2 rounded-lg text-xs"><i class="fa-solid fa-floppy-disk mr-1"></i> Guardar</button>
+              <button type="button" id="deleteGoalBtn" class="bg-zinc-950 text-rose-400 border border-zinc-800 font-semibold py-2 rounded-lg text-xs"><i class="fa-solid fa-trash-can mr-1"></i> Borrar</button>
             </div>
           </form>
         </div>
 
-        <!-- Tarjeta para Registrar Movimientos -->
-        <div class="bg-slate-900/60 backdrop-blur-xl p-4 md:p-5 rounded-3xl border border-slate-800/80 shadow-xl">
-          <div class="flex justify-between items-center mb-3">
-            <h2 class="text-sm font-bold text-emerald-400 flex items-center gap-2">
-              <i class="fa-solid fa-money-bill-transfer"></i> Registrar Dinero
-            </h2>
-            <button id="openHistoryBtn" class="text-[11px] bg-slate-950 hover:bg-slate-800 border border-slate-800 text-indigo-400 font-semibold px-2.5 py-1 rounded-xl flex items-center gap-1">
-              <i class="fa-solid fa-clock-rotate-left"></i> Historial
-            </button>
-          </div>
-
-          <form id="transactionForm" class="space-y-2.5">
+        <!-- FORMULARIO MOVIMIENTOS -->
+        <div id="card-tx-form" class="bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
+          <h2 class="text-xs font-bold text-zinc-200 uppercase tracking-wider mb-3">Registrar Dinero</h2>
+          <form id="transactionForm" class="space-y-3">
             <div class="grid grid-cols-2 gap-2">
               <div>
-                <label class="block text-[10px] font-semibold text-slate-400 mb-1">Tipo</label>
-                <select id="txType" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-white text-xs outline-none">
-                  <option value="deposit">➕ Aporte (+)</option>
-                  <option value="loss">➖ Pérdida (-)</option>
+                <label class="block text-[10px] font-medium text-zinc-400 mb-1">Tipo</label>
+                <select id="txType" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-white text-xs outline-none">
+                  <option value="deposit">➕ Ingreso (+)</option>
+                  <option value="loss">➖ Egreso (-)</option>
                 </select>
               </div>
               <div>
-                <label class="block text-[10px] font-semibold text-slate-400 mb-1">Monto (Gs.)</label>
-                <input type="number" id="txAmount" required placeholder="Ej: 200000" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs outline-none">
+                <label class="block text-[10px] font-medium text-zinc-400 mb-1">Categoría</label>
+                <select id="txCategory" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-white text-xs outline-none">
+                  <option value="💼 Sueldo">💼 Sueldo</option>
+                  <option value="🎯 Ahorro Directo">🎯 Ahorro</option>
+                  <option value="🍔 Gastos">🍔 Gastos</option>
+                </select>
               </div>
             </div>
-            <div>
-              <label class="block text-[10px] font-semibold text-slate-400 mb-1">Detalle (Opcional)</label>
-              <input type="text" id="txNote" placeholder="Ej: Ahorro de la semana" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white text-xs outline-none">
+
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-[10px] font-medium text-zinc-400 mb-1">Monto (Gs.)</label>
+                <input type="number" id="txAmount" required placeholder="Ej: 200000" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-white text-xs outline-none">
+              </div>
+              <div>
+                <label class="block text-[10px] font-medium text-zinc-400 mb-1">Detalle</label>
+                <input type="text" id="txNote" placeholder="Ej: Depósito semanal" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-white text-xs outline-none">
+              </div>
             </div>
-            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-xs shadow-md shadow-emerald-600/20 active:scale-95 flex items-center justify-center gap-1">
-              <i class="fa-solid fa-plus"></i> Añadir Movimiento
-            </button>
+
+            <button type="submit" class="w-full bg-zinc-100 text-zinc-950 font-bold py-2.5 rounded-lg text-xs"><i class="fa-solid fa-plus mr-1"></i> Añadir Movimiento</button>
           </form>
 
-          <!-- SECCIÓN DE REUTILIZACIÓN RÁPIDA DE ESPACIO COMPACTO -->
-          <div class="mt-3 pt-3 border-t border-slate-800/80">
-            <span class="text-[10px] text-slate-400 font-semibold block mb-1.5">⚡ Aportes Habituales</span>
-            <div id="quickReuseList" class="flex flex-wrap gap-1.5">
-              <p class="text-[10px] text-slate-500">Sin atajos guardados aún.</p>
-            </div>
+          <div class="mt-4 pt-3 border-t border-zinc-800">
+            <span class="text-[10px] text-zinc-400 font-semibold block mb-2">Operaciones Rápidas</span>
+            <div id="quickReuseList" class="flex flex-wrap gap-1.5"></div>
           </div>
         </div>
 
-      </div>
-
-      <!-- Columna Derecha: Métricas, Gráficos e IA -->
-      <div class="lg:col-span-7 space-y-4">
-
-        <!-- Progreso Sincronizado -->
-        <div class="bg-slate-900/60 backdrop-blur-xl p-4 md:p-5 rounded-3xl border border-slate-800/80 shadow-xl">
+        <!-- BLOQUE AVANCE META -->
+        <div id="card-progress" class="bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
           <div class="flex justify-between items-center mb-2">
-            <h2 class="text-sm font-bold text-emerald-400 flex items-center gap-2">
-              <i class="fa-solid fa-chart-line"></i> Progreso del Plan
-            </h2>
-            <span id="progressPercentage" class="text-xs font-black text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20">0%</span>
+            <span class="text-xs font-bold text-zinc-200">Avance de Meta Activa</span>
+            <span id="progressPercentage" class="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">0%</span>
           </div>
-
-          <div class="w-full bg-slate-950 rounded-full h-3 p-0.5 border border-slate-800/80 overflow-hidden mb-3">
-            <div id="progressBar" class="bg-gradient-to-r from-indigo-500 via-cyan-400 to-emerald-400 h-full rounded-full transition-all duration-700 ease-out" style="width: 0%"></div>
+          <div class="w-full bg-zinc-950 rounded-full h-2 border border-zinc-800 overflow-hidden mb-3">
+            <div id="progressBar" class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
           </div>
-
-          <div id="summary">
-            <p class="text-xs text-slate-500">Ingresa una meta a la izquierda y presiona "Calcular Plan".</p>
-          </div>
+          <div id="summary"></div>
         </div>
 
-        <!-- Gráfico de Proyección -->
-        <div class="bg-slate-900/60 backdrop-blur-xl p-4 md:p-5 rounded-3xl border border-slate-800/80 shadow-xl">
-          <h2 class="text-sm font-bold mb-2 text-indigo-400 flex items-center gap-2">
-            <i class="fa-solid fa-chart-area"></i> Proyección Visual
-          </h2>
-          <div class="relative h-36 md:h-44 w-full">
+        <!-- BLOQUE PROYECCIÓN -->
+        <div id="card-chart" class="bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
+          <span class="text-xs font-bold text-zinc-200 block mb-2">Proyección Visual</span>
+          <div class="relative h-36 w-full">
             <canvas id="savingsChart"></canvas>
           </div>
         </div>
 
-        <!-- Asesor IA Groq -->
-        <div class="bg-slate-900/60 backdrop-blur-xl p-4 md:p-5 rounded-3xl border border-slate-800/80 shadow-xl">
+        <!-- BLOQUE IA GROQ -->
+        <div id="card-ai" class="bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
           <div class="flex justify-between items-center mb-2">
-            <h2 class="text-sm font-bold text-cyan-400 flex items-center gap-2">
-              <i class="fa-solid fa-brain"></i> Dictamen IA
-            </h2>
-            <button id="askAiBtn" class="text-[11px] bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 px-3 py-1 rounded-xl font-semibold active:scale-95">
-              <i class="fa-solid fa-rotate mr-1"></i> Consultar
-            </button>
+            <span class="text-xs font-bold text-zinc-200">Asesor IA</span>
+            <button id="askAiBtn" class="text-[10px] bg-zinc-950 border border-zinc-800 text-emerald-400 px-2 py-1 rounded font-semibold">Consultar</button>
           </div>
-          <div id="aiResponse" class="text-xs text-slate-300 leading-relaxed min-h-[40px] flex items-center justify-center text-center">
-            Haz clic en "Consultar" o calcula tu plan para recibir un análisis instantáneo.
-          </div>
+          <div id="aiResponse" class="text-xs text-zinc-400">Presiona consultar para obtener un diagnóstico rápido.</div>
         </div>
 
       </div>
     </div>
+
+    <!-- NAVEGACIÓN INFERIOR (MÓVIL) -->
+    <nav id="bottomNav" class="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-800 p-2 z-40">
+      <div class="max-w-md mx-auto flex justify-around">
+        <button onclick="switchTab('home')" id="nav-home" class="nav-btn flex flex-col items-center text-emerald-400 text-[10px] font-semibold">
+          <i class="fa-solid fa-house text-base mb-0.5"></i> Inicio
+        </button>
+        <button onclick="switchTab('goals')" id="nav-goals" class="nav-btn flex flex-col items-center text-zinc-500 text-[10px] font-semibold">
+          <i class="fa-solid fa-bullseye text-base mb-0.5"></i> Metas
+        </button>
+        <button onclick="switchTab('transactions')" id="nav-transactions" class="nav-btn flex flex-col items-center text-zinc-500 text-[10px] font-semibold">
+          <i class="fa-solid fa-right-left text-base mb-0.5"></i> Movimientos
+        </button>
+      </div>
+    </nav>
+
   </div>
 
   <script>
     const GROQ_API_KEY = "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";
-    
     let currentUser = null;
     let isRegisterMode = false;
-    let appData = { item: '', cost: 0, targetDate: '', transactions: [] };
+    let isPcMode = window.innerWidth >= 768;
+    let appData = { goals: [], activeGoalIndex: 0, transactions: [] };
     let savingsChart = null;
 
     function formatPYG(amount) {
-      return "Gs. " + new Intl.NumberFormat('es-PY').format(amount);
+      return "Gs. " + new Intl.NumberFormat('es-PY').format(amount || 0);
     }
 
-    // Inicialización al cargar la ventana
+    window.toggleViewMode = function() {
+      isPcMode = !isPcMode;
+      applyViewMode();
+    }
+
+    function applyViewMode() {
+      const container = document.getElementById('appLayoutContainer');
+      const bottomNav = document.getElementById('bottomNav');
+      const toggleText = document.getElementById('viewToggleText');
+      const toggleIcon = document.getElementById('viewToggleIcon');
+
+      const cardGoals = document.getElementById('card-goals-form');
+      const cardTx = document.getElementById('card-tx-form');
+      const cardBalance = document.getElementById('card-balance');
+      const cardProgress = document.getElementById('card-progress');
+      const cardChart = document.getElementById('card-chart');
+      const cardAi = document.getElementById('card-ai');
+
+      if (isPcMode) {
+        container.className = "max-w-6xl mx-auto";
+        bottomNav.classList.add('hidden');
+        toggleText.innerText = "Modo Móvil";
+        toggleIcon.className = "fa-solid fa-mobile-screen";
+
+        document.getElementById('dashboardGrid').className = "grid grid-cols-1 md:grid-cols-2 gap-4";
+        
+        cardBalance.className = "md:col-span-2 bg-zinc-900 border border-zinc-800 p-4 rounded-xl block";
+        cardGoals.className = "bg-zinc-900 border border-zinc-800 p-4 rounded-xl block";
+        cardTx.className = "bg-zinc-900 border border-zinc-800 p-4 rounded-xl block";
+        cardProgress.className = "bg-zinc-900 border border-zinc-800 p-4 rounded-xl block";
+        cardChart.className = "bg-zinc-900 border border-zinc-800 p-4 rounded-xl block";
+        cardAi.className = "md:col-span-2 bg-zinc-900 border border-zinc-800 p-4 rounded-xl block";
+      } else {
+        container.className = "max-w-md mx-auto";
+        bottomNav.classList.remove('hidden');
+        toggleText.innerText = "Modo PC";
+        toggleIcon.className = "fa-solid fa-desktop";
+
+        document.getElementById('dashboardGrid').className = "space-y-4";
+
+        cardBalance.className = "bg-zinc-900 border border-zinc-800 p-4 rounded-xl";
+        cardGoals.className = "bg-zinc-900 border border-zinc-800 p-4 rounded-xl";
+        cardTx.className = "bg-zinc-900 border border-zinc-800 p-4 rounded-xl";
+        cardProgress.className = "bg-zinc-900 border border-zinc-800 p-4 rounded-xl";
+        cardChart.className = "bg-zinc-900 border border-zinc-800 p-4 rounded-xl";
+        cardAi.className = "bg-zinc-900 border border-zinc-800 p-4 rounded-xl";
+
+        switchTab('home');
+      }
+    }
+
+    window.switchTab = function(tabName) {
+      if (isPcMode) return;
+
+      const cardGoals = document.getElementById('card-goals-form');
+      const cardTx = document.getElementById('card-tx-form');
+      const cardBalance = document.getElementById('card-balance');
+      const cardProgress = document.getElementById('card-progress');
+      const cardChart = document.getElementById('card-chart');
+      const cardAi = document.getElementById('card-ai');
+
+      document.querySelectorAll('.nav-btn').forEach(el => {
+        el.classList.remove('text-emerald-400');
+        el.classList.add('text-zinc-500');
+      });
+
+      const activeNav = document.getElementById(`nav-${tabName}`);
+      if(activeNav) {
+        activeNav.classList.remove('text-zinc-500');
+        activeNav.classList.add('text-emerald-400');
+      }
+
+      if (tabName === 'home') {
+        cardBalance.classList.remove('hidden');
+        cardProgress.classList.remove('hidden');
+        cardChart.classList.remove('hidden');
+        cardAi.classList.remove('hidden');
+        cardGoals.classList.add('hidden');
+        cardTx.classList.add('hidden');
+      } else if (tabName === 'goals') {
+        cardBalance.classList.add('hidden');
+        cardProgress.classList.add('hidden');
+        cardChart.classList.add('hidden');
+        cardAi.classList.add('hidden');
+        cardGoals.classList.remove('hidden');
+        cardTx.classList.add('hidden');
+      } else if (tabName === 'transactions') {
+        cardBalance.classList.add('hidden');
+        cardProgress.classList.add('hidden');
+        cardChart.classList.add('hidden');
+        cardAi.classList.add('hidden');
+        cardGoals.classList.add('hidden');
+        cardTx.classList.remove('hidden');
+      }
+    }
+
     window.addEventListener('load', () => {
+      applyViewMode();
+
       const checkInterval = setInterval(() => {
         if (window.firebaseAuth) {
           clearInterval(checkInterval);
@@ -288,21 +367,17 @@
       }, 100);
     });
 
-    // Control del Modal de Historial
     const historyModal = document.getElementById('historyModal');
     document.getElementById('openHistoryBtn').addEventListener('click', () => historyModal.classList.remove('hidden'));
     document.getElementById('closeHistoryBtn').addEventListener('click', () => historyModal.classList.add('hidden'));
     document.getElementById('closeHistoryBtn2').addEventListener('click', () => historyModal.classList.add('hidden'));
 
-    // Alternar Login / Registro
     document.getElementById('toggleAuthMode').addEventListener('click', () => {
       isRegisterMode = !isRegisterMode;
-      document.getElementById('authTitle').innerText = isRegisterMode ? 'Crear Cuenta' : 'Iniciar Sesión';
-      document.getElementById('authSubmitBtn').innerText = isRegisterMode ? 'Registrarse' : 'Entrar';
-      document.getElementById('toggleAuthMode').innerText = isRegisterMode ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate aquí';
+      document.getElementById('authTitle').innerText = isRegisterMode ? 'Crear Cuenta' : 'SmartFinance';
+      document.getElementById('authSubmitBtn').innerText = isRegisterMode ? 'Registrarme' : 'Entrar';
     });
 
-    // Autenticación
     document.getElementById('authForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('authEmail').value;
@@ -319,59 +394,103 @@
           await signInWithEmailAndPassword(auth, email, pass);
         }
       } catch (err) {
-        let msg = err.message;
-        if (err.code === 'auth/api-key-not-valid') {
-          msg = "La API Key requiere habilitar Identity Toolkit API en Google Cloud Console.";
-        } else if (err.code === 'auth/invalid-credential') {
-          msg = "Credenciales incorrectas o usuario no registrado.";
-        }
-        errDiv.innerText = msg;
+        errDiv.innerText = err.message;
         errDiv.classList.remove('hidden');
       }
     });
 
-    // Logout
     document.getElementById('logoutBtn').addEventListener('click', () => {
       window.firebaseAuth.signOut(window.firebaseAuth.auth);
     });
 
-    // Escuchar Firestore en tiempo real
     function listenToUserData() {
       const { db, doc, onSnapshot } = window.firebaseAuth;
       const docRef = doc(db, "users", currentUser.uid);
 
       onSnapshot(docRef, (docSnap) => {
         if (docSnap.exists()) {
-          appData = docSnap.data();
-          if (appData.item) document.getElementById('goalItem').value = appData.item;
-          if (appData.cost) document.getElementById('goalCost').value = appData.cost;
-          if (appData.targetDate) document.getElementById('targetDate').value = appData.targetDate;
+          const data = docSnap.data();
+          appData.goals = data.goals || [];
+          appData.activeGoalIndex = data.activeGoalIndex || 0;
+          appData.transactions = data.transactions || [];
           updateUI();
         }
       });
     }
 
-    // Guardar en Firestore
     async function saveToCloud() {
       if (!currentUser) return;
       const { db, doc, setDoc } = window.firebaseAuth;
       await setDoc(doc(db, "users", currentUser.uid), appData);
     }
 
-    // REUTILIZAR TRANSACCIÓN
-    window.reuseTransaction = function(amount, type, note) {
+    document.getElementById('goalSelector').addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (val === 'new') {
+        document.getElementById('goalItem').value = '';
+        document.getElementById('goalCost').value = '';
+        document.getElementById('targetDate').value = '';
+      } else {
+        appData.activeGoalIndex = parseInt(val);
+        updateUI();
+        saveToCloud();
+      }
+    });
+
+    document.getElementById('financeForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const item = document.getElementById('goalItem').value;
+      const cost = parseFloat(document.getElementById('goalCost').value);
+      const targetDate = document.getElementById('targetDate').value;
+
+      if (!appData.goals) appData.goals = [];
+
+      const selectVal = document.getElementById('goalSelector').value;
+      if (selectVal === 'new') {
+        appData.goals.push({ item, cost, targetDate });
+        appData.activeGoalIndex = appData.goals.length - 1;
+      } else {
+        appData.goals[appData.activeGoalIndex] = { item, cost, targetDate };
+      }
+
+      updateUI();
+      saveToCloud();
+      if (!isPcMode) switchTab('home');
+    });
+
+    document.getElementById('deleteGoalBtn').addEventListener('click', () => {
+      if (!appData.goals || appData.goals.length === 0) return;
+      appData.goals.splice(appData.activeGoalIndex, 1);
+      appData.activeGoalIndex = 0;
+      updateUI();
+      saveToCloud();
+    });
+
+    document.getElementById('transactionForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const type = document.getElementById('txType').value;
+      const category = document.getElementById('txCategory').value;
+      const amount = parseFloat(document.getElementById('txAmount').value);
+      const note = document.getElementById('txNote').value;
+
       if (!appData.transactions) appData.transactions = [];
-      appData.transactions.push({
-        type: type,
-        amount: parseFloat(amount),
-        note: note,
-        date: new Date().toLocaleDateString('es-PY')
-      });
+      appData.transactions.push({ type, category, amount, note, date: new Date().toLocaleDateString('es-PY') });
+
+      document.getElementById('txAmount').value = '';
+      document.getElementById('txNote').value = '';
+
+      updateUI();
+      saveToCloud();
+      if (!isPcMode) switchTab('home');
+    });
+
+    window.reuseTransaction = function(amount, type, category, note) {
+      if (!appData.transactions) appData.transactions = [];
+      appData.transactions.push({ type, category, amount: parseFloat(amount), note, date: new Date().toLocaleDateString('es-PY') });
       updateUI();
       saveToCloud();
     };
 
-    // ELIMINAR TRANSACCIÓN
     window.deleteTransaction = function(index) {
       if (!appData.transactions) return;
       appData.transactions.splice(index, 1);
@@ -379,73 +498,51 @@
       saveToCloud();
     };
 
-    // Renderizar Historial Modal e Íconos Rápidos
-    function renderHistoryAndQuickList() {
-      const modalListDiv = document.getElementById('historyModalList');
-      const quickDiv = document.getElementById('quickReuseList');
+    document.getElementById('exportExcelBtn').addEventListener('click', () => {
+      if (!appData.transactions || appData.transactions.length === 0) return;
+      const worksheet = XLSX.utils.json_to_sheet(appData.transactions);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Historial");
+      XLSX.writeFile(workbook, "Reporte.xlsx");
+    });
 
-      if (!appData.transactions || appData.transactions.length === 0) {
-        modalListDiv.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">No hay movimientos guardados.</p>`;
-        quickDiv.innerHTML = `<p class="text-[10px] text-slate-500">Sin atajos guardados aún.</p>`;
+    document.getElementById('sendWspReminderBtn').addEventListener('click', () => {
+      const activeGoal = appData.goals[appData.activeGoalIndex];
+      const goalText = activeGoal ? activeGoal.item : "mis metas";
+      const msg = `SmartFinance: Recordatorio de avance para la meta '${goalText}'.`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+    });
+
+    function updateUI() {
+      const goalSel = document.getElementById('goalSelector');
+      goalSel.innerHTML = appData.goals.map((g, idx) => `
+        <option value="${idx}" ${idx === appData.activeGoalIndex ? 'selected' : ''}>${g.item}</option>
+      `).join('') + `<option value="new">+ Nueva Meta</option>`;
+
+      const activeGoal = appData.goals[appData.activeGoalIndex];
+      if (activeGoal) {
+        document.getElementById('goalItem').value = activeGoal.item;
+        document.getElementById('goalCost').value = activeGoal.cost;
+        document.getElementById('targetDate').value = activeGoal.targetDate;
+      }
+
+      const walletBalance = (appData.transactions || []).reduce((acc, tx) => tx.type === 'deposit' ? acc + tx.amount : acc - tx.amount, 0);
+      document.getElementById('walletBalanceDisplay').innerText = formatPYG(walletBalance);
+
+      renderHistoryAndQuickList();
+
+      if (!activeGoal) {
+        document.getElementById('progressBar').style.width = `0%`;
+        document.getElementById('progressPercentage').innerText = `0%`;
+        document.getElementById('summary').innerHTML = `<p class="text-xs text-zinc-500">Sin meta seleccionada.</p>`;
         return;
       }
 
-      // Renderizar Modal con Botón de Eliminar
-      const reversedTxs = appData.transactions.slice().reverse();
-      const originalLength = appData.transactions.length;
+      const totalSaved = walletBalance;
+      const remainingCost = Math.max(activeGoal.cost - totalSaved, 0);
+      const progressRatio = Math.min(Math.max((totalSaved / activeGoal.cost) * 100, 0), 100).toFixed(1);
 
-      modalListDiv.innerHTML = reversedTxs.map((tx, idx) => {
-        const originalIndex = originalLength - 1 - idx;
-        return `
-          <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs">
-            <div class="flex items-center gap-2">
-              <span class="${tx.type === 'deposit' ? 'text-emerald-400' : 'text-red-400'} font-bold">
-                ${tx.type === 'deposit' ? '➕' : '➖'}
-              </span>
-              <div>
-                <p class="font-semibold text-slate-200 text-[11px]">${tx.note || (tx.type === 'deposit' ? 'Aporte' : 'Pérdida')}</p>
-                <span class="text-[9px] text-slate-500">${tx.date}</span>
-              </div>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="font-bold ${tx.type === 'deposit' ? 'text-emerald-400' : 'text-red-400'} text-[11px]">
-                ${tx.type === 'deposit' ? '+' : '-'}${formatPYG(tx.amount)}
-              </span>
-              <button onclick="reuseTransaction('${tx.amount}', '${tx.type}', '${tx.note}')" title="Repetir" class="bg-slate-800 hover:bg-slate-700 text-slate-300 p-1.5 rounded-lg border border-slate-700 active:scale-95">
-                🔁
-              </button>
-              <button onclick="deleteTransaction(${originalIndex})" title="Eliminar" class="bg-red-950/40 hover:bg-red-900/60 text-red-400 p-1.5 rounded-lg border border-red-800/40 active:scale-95">
-                <i class="fa-solid fa-trash-can"></i>
-              </button>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      // Renderizar Atajos Únicos Rápidos
-      const uniqueTx = Array.from(new Set(appData.transactions.map(t => JSON.stringify({ amount: t.amount, type: t.type, note: t.note }))))
-                            .map(s => JSON.parse(s))
-                            .slice(-3);
-
-      quickDiv.innerHTML = uniqueTx.map(tx => `
-        <button onclick="reuseTransaction('${tx.amount}', '${tx.type}', '${tx.note}')" class="text-[10px] bg-slate-950 border border-slate-800 hover:border-indigo-500/50 px-2 py-1 rounded-lg flex items-center gap-1 text-slate-300 active:scale-95">
-          <span>${tx.type === 'deposit' ? '➕' : '➖'}</span>
-          <span>${formatPYG(tx.amount)}</span>
-        </button>
-      `).join('');
-    }
-
-    // Actualizar Interfaz
-    function updateUI() {
-      renderHistoryAndQuickList();
-
-      if (!appData.cost || !appData.targetDate) return;
-
-      const totalSaved = (appData.transactions || []).reduce((acc, tx) => tx.type === 'deposit' ? acc + tx.amount : acc - tx.amount, 0);
-      const remainingCost = Math.max(appData.cost - totalSaved, 0);
-      const progressRatio = Math.min(Math.max((totalSaved / appData.cost) * 100, 0), 100).toFixed(1);
-
-      const target = new Date(appData.targetDate);
+      const target = new Date(activeGoal.targetDate);
       const weeks = Math.max(Math.ceil(Math.max(target - new Date(), 0) / (1000 * 60 * 60 * 24 * 7)), 1);
       const weeklyNeeded = Math.round(remainingCost / weeks);
 
@@ -453,30 +550,77 @@
       document.getElementById('progressPercentage').innerText = `${progressRatio}%`;
 
       document.getElementById('summary').innerHTML = `
-        <div class="grid grid-cols-3 gap-1.5 mb-2.5 text-center">
-          <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
-            <span class="text-[9px] text-slate-400 block font-medium">Ahorrado</span>
-            <p class="text-[11px] font-bold text-emerald-400">${formatPYG(totalSaved)}</p>
+        <div class="grid grid-cols-3 gap-1.5 mb-2 text-center text-xs">
+          <div class="bg-zinc-950 p-2 rounded-lg border border-zinc-800">
+            <span class="text-[9px] text-zinc-400 block">Acumulado</span>
+            <p class="font-bold text-emerald-400 text-[11px]">${formatPYG(totalSaved)}</p>
           </div>
-          <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
-            <span class="text-[9px] text-slate-400 block font-medium">Pendiente</span>
-            <p class="text-[11px] font-bold text-slate-200">${formatPYG(remainingCost)}</p>
+          <div class="bg-zinc-950 p-2 rounded-lg border border-zinc-800">
+            <span class="text-[9px] text-zinc-400 block">Faltante</span>
+            <p class="font-bold text-zinc-200 text-[11px]">${formatPYG(remainingCost)}</p>
           </div>
-          <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
-            <span class="text-[9px] text-slate-400 block font-medium">Semanas</span>
-            <p class="text-[11px] font-bold text-white">${weeks} sem</p>
+          <div class="bg-zinc-950 p-2 rounded-lg border border-zinc-800">
+            <span class="text-[9px] text-zinc-400 block">Plazo</span>
+            <p class="font-bold text-white text-[11px]">${weeks} sem</p>
           </div>
         </div>
-        <div class="bg-slate-950 p-2.5 rounded-xl border border-indigo-500/30 flex justify-between items-center text-[11px]">
-          <span class="text-slate-400 font-medium">Ahorro Semanal Requerido:</span>
-          <span class="font-extrabold text-indigo-400">${formatPYG(weeklyNeeded)} / sem</span>
+        <div class="bg-zinc-950 p-2 rounded-lg border border-zinc-800 flex justify-between items-center text-xs">
+          <span class="text-zinc-400">Ahorro semanal:</span>
+          <span class="font-bold text-emerald-400">${formatPYG(weeklyNeeded)}</span>
         </div>
       `;
 
-      updateChart(totalSaved, appData.cost, weeks);
+      updateChart(totalSaved, activeGoal.cost, weeks);
     }
 
-    // Gráfico Chart.js
+    function renderHistoryAndQuickList() {
+      const modalListDiv = document.getElementById('historyModalList');
+      const quickDiv = document.getElementById('quickReuseList');
+
+      if (!appData.transactions || appData.transactions.length === 0) {
+        modalListDiv.innerHTML = `<p class="text-xs text-zinc-500 text-center py-4">Sin datos de movimientos.</p>`;
+        quickDiv.innerHTML = `<p class="text-[10px] text-zinc-500">Sin registros.</p>`;
+        return;
+      }
+
+      const reversedTxs = appData.transactions.slice().reverse();
+      const originalLength = appData.transactions.length;
+
+      modalListDiv.innerHTML = reversedTxs.map((tx, idx) => {
+        const originalIndex = originalLength - 1 - idx;
+        return `
+          <div class="flex justify-between items-center bg-zinc-950 p-2.5 rounded-lg border border-zinc-800 text-xs">
+            <div class="flex items-center gap-2">
+              <span class="${tx.type === 'deposit' ? 'text-emerald-400' : 'text-rose-400'} font-bold">
+                ${tx.type === 'deposit' ? '↓' : '↑'}
+              </span>
+              <div>
+                <p class="font-semibold text-zinc-200 text-[11px]">${tx.category || ''} ${tx.note ? '- ' + tx.note : ''}</p>
+                <span class="text-[9px] text-zinc-500">${tx.date}</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span class="font-bold ${tx.type === 'deposit' ? 'text-emerald-400' : 'text-rose-400'} text-[11px]">
+                ${tx.type === 'deposit' ? '+' : '-'}${formatPYG(tx.amount)}
+              </span>
+              <button onclick="deleteTransaction(${originalIndex})" class="text-rose-400 p-1"><i class="fa-solid fa-trash-can text-xs"></i></button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const uniqueTx = Array.from(new Set(appData.transactions.map(t => JSON.stringify({ amount: t.amount, type: t.type, category: t.category, note: t.note }))))
+                            .map(s => JSON.parse(s))
+                            .slice(-3);
+
+      quickDiv.innerHTML = uniqueTx.map(tx => `
+        <button onclick="reuseTransaction('${tx.amount}', '${tx.type}', '${tx.category}', '${tx.note}')" class="text-[10px] bg-zinc-950 border border-zinc-800 px-2 py-1 rounded-lg flex items-center gap-1 text-zinc-300">
+          <span class="${tx.type === 'deposit' ? 'text-emerald-400' : 'text-rose-400'} font-bold">${tx.type === 'deposit' ? '+' : '-'}</span>
+          <span>${formatPYG(tx.amount)}</span>
+        </button>
+      `).join('');
+    }
+
     function updateChart(currentSaved, totalCost, weeks) {
       const ctx = document.getElementById('savingsChart').getContext('2d');
       const labels = [];
@@ -484,8 +628,8 @@
       const realData = [];
       const weeklyIdeal = totalCost / weeks;
 
-      for (let i = 0; i <= Math.min(weeks, 8); i++) {
-        labels.push(`Sem ${i}`);
+      for (let i = 0; i <= Math.min(weeks, 6); i++) {
+        labels.push(`S${i}`);
         idealData.push(Math.round(weeklyIdeal * i));
         if (i === 0) realData.push(0);
         else if (i === 1) realData.push(currentSaved);
@@ -499,73 +643,35 @@
         data: {
           labels: labels,
           datasets: [
-            { label: 'Línea Ideal', data: idealData, borderColor: '#6366f1', borderDash: [5, 5] },
-            { label: 'Avance Real', data: realData, borderColor: '#10b981', pointRadius: 3 }
+            { label: 'Ideal', data: idealData, borderColor: '#52525b', borderDash: [3, 3], pointRadius: 0 },
+            { label: 'Real', data: realData, borderColor: '#10b981', pointRadius: 2 }
           ]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { labels: { color: '#94a3b8', font: { size: 9 } } } },
+          plugins: { legend: { display: false } },
           scales: {
-            x: { ticks: { color: '#64748b', font: { size: 8 } } },
-            y: { ticks: { color: '#64748b', font: { size: 8 } } }
+            x: { grid: { display: false }, ticks: { color: '#71717a', font: { size: 8 } } },
+            y: { grid: { color: '#27272a' }, ticks: { color: '#71717a', font: { size: 8 } } }
           }
         }
       });
     }
 
-    // Formulario Calcular Plan
-    document.getElementById('financeForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      appData.item = document.getElementById('goalItem').value;
-      appData.cost = parseFloat(document.getElementById('goalCost').value);
-      appData.targetDate = document.getElementById('targetDate').value;
-      
-      updateUI();
-      saveToCloud();
-    });
-
-    // Botón Nube Secundario
-    document.getElementById('saveCloudBtn').addEventListener('click', () => {
-      if (!document.getElementById('goalCost').value) return;
-      appData.item = document.getElementById('goalItem').value;
-      appData.cost = parseFloat(document.getElementById('goalCost').value);
-      appData.targetDate = document.getElementById('targetDate').value;
-      
-      updateUI();
-      saveToCloud();
-    });
-
-    // Guardar Nueva Transacción
-    document.getElementById('transactionForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const type = document.getElementById('txType').value;
-      const amount = parseFloat(document.getElementById('txAmount').value);
-      const note = document.getElementById('txNote').value;
-
-      if (!appData.transactions) appData.transactions = [];
-      appData.transactions.push({ type, amount, note, date: new Date().toLocaleDateString('es-PY') });
-
-      document.getElementById('txAmount').value = '';
-      document.getElementById('txNote').value = '';
-
-      updateUI();
-      saveToCloud();
-    });
-
-    // Consultar Groq IA
     document.getElementById('askAiBtn').addEventListener('click', async () => {
-      if (!appData.cost) return;
+      const activeGoal = appData.goals[appData.activeGoalIndex];
+      if (!activeGoal) return;
+
       const aiDiv = document.getElementById('aiResponse');
-      aiDiv.innerHTML = "<p class='animate-pulse text-indigo-300 text-xs'>Analizando con Groq...</p>";
+      aiDiv.innerHTML = "<p class='animate-pulse text-emerald-400 text-xs'>Analizando...</p>";
 
-      const totalSaved = (appData.transactions || []).reduce((acc, tx) => tx.type === 'deposit' ? acc + tx.amount : acc - tx.amount, 0);
-      const target = new Date(appData.targetDate);
+      const walletBalance = (appData.transactions || []).reduce((acc, tx) => tx.type === 'deposit' ? acc + tx.amount : acc - tx.amount, 0);
+      const target = new Date(activeGoal.targetDate);
       const weeks = Math.max(Math.ceil(Math.max(target - new Date(), 0) / (1000 * 60 * 60 * 24 * 7)), 1);
-      const needed = Math.round(Math.max(appData.cost - totalSaved, 0) / weeks);
+      const needed = Math.round(Math.max(activeGoal.cost - walletBalance, 0) / weeks);
 
-      const promptText = `Meta: ${appData.item}, Ahorrado: ${formatPYG(totalSaved)}, Meta total: ${formatPYG(appData.cost)}, Cuota semanal restante: ${formatPYG(needed)} por ${weeks} semanas. Da un diagnostico directo en maximo 2 oraciones sin asteriscos.`;
+      const promptText = `Meta: ${activeGoal.item}, Saldo: ${formatPYG(walletBalance)}, Meta total: ${formatPYG(activeGoal.cost)}, Cuota semanal restante: ${formatPYG(needed)} por ${weeks} semanas. Da un diagnostico directo en maximo 2 oraciones sin asteriscos.`;
 
       try {
         const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -574,7 +680,7 @@
           body: JSON.stringify({
             model: "llama-3.3-70b-versatile",
             messages: [
-              { role: "system", content: "Eres un asesor financiero conciso y directo. Respondes en maximo 2 oraciones sin asteriscos ni negritas." },
+              { role: "system", content: "Eres un asesor financiero. Respondes en maximo 2 oraciones sin asteriscos ni negritas." },
               { role: "user", content: promptText }
             ],
             temperature: 0.2
@@ -583,9 +689,9 @@
 
         const data = await response.json();
         let reply = data.choices?.[0]?.message?.content || "";
-        aiDiv.innerHTML = `<p class="text-slate-200 text-xs text-left">${reply.replace(/\*/g, "").trim()}</p>`;
+        aiDiv.innerHTML = `<p class="text-zinc-200 text-xs text-left">${reply.replace(/\*/g, "").trim()}</p>`;
       } catch (err) {
-        aiDiv.innerHTML = "<p class='text-red-400 text-xs'>Error de conexión al consultar la IA.</p>";
+        aiDiv.innerHTML = "<p class='text-rose-400 text-xs'>Error de conexión.</p>";
       }
     });
   </script>
