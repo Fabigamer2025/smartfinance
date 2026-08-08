@@ -97,6 +97,9 @@
       </div>
     </header>
 
+    <!-- NOTIFICACIÓN DE ESTADO NUBE -->
+    <div id="cloudStatus" class="hidden max-w-md mx-auto mb-3 p-2 text-center text-xs rounded-lg border"></div>
+
     <!-- CONTENEDOR PRINCIPAL -->
     <div id="appLayoutContainer" class="max-w-md mx-auto transition-all duration-300">
       
@@ -210,7 +213,7 @@
             <span class="text-xs font-bold text-zinc-200">Asesor IA</span>
             <button id="askAiBtn" class="text-[10px] bg-zinc-950 border border-zinc-800 text-emerald-400 px-2.5 py-1 rounded font-semibold hover:border-emerald-500/50 transition-all">Consultar</button>
           </div>
-          <div id="aiResponse" class="text-xs text-zinc-400 leading-relaxed">Presiona "Consultar" para recibir un diagnóstico personalizado de tu meta y salarios.</div>
+          <div id="aiResponse" class="text-xs text-zinc-400 leading-relaxed">Presiona "Consultar" para recibir un diagnóstico personalizado.</div>
         </div>
 
       </div>
@@ -234,7 +237,6 @@
   </div>
 
   <script>
-    // Fragmentos para armado dinámico de API Key sin bloqueos de escáner
     const _p1 = "AIzaSyD";
     const _p2 = "Yk7R_gQx8L29m";
     const _p3 = "P3zW1a_xX9vL0";
@@ -245,9 +247,20 @@
     let isPcMode = window.innerWidth >= 768;
     let appData = { goals: [], activeGoalIndex: 0, transactions: [] };
     let savingsChart = null;
+    let isDataLoadedFromCloud = false;
 
     function formatPYG(amount) {
       return "Gs. " + new Intl.NumberFormat('es-PY').format(amount || 0);
+    }
+
+    function showCloudStatus(msg, isError = false) {
+      const box = document.getElementById('cloudStatus');
+      box.innerText = msg;
+      box.className = isError 
+        ? "max-w-md mx-auto mb-3 p-2 text-center text-xs rounded-lg bg-rose-950/50 text-rose-400 border border-rose-800"
+        : "max-w-md mx-auto mb-3 p-2 text-center text-xs rounded-lg bg-emerald-950/50 text-emerald-400 border border-emerald-800";
+      box.classList.remove('hidden');
+      setTimeout(() => box.classList.add('hidden'), 4000);
     }
 
     window.toggleViewMode = function() {
@@ -363,6 +376,7 @@
               listenToUserData();
             } else {
               currentUser = null;
+              isDataLoadedFromCloud = false;
               document.getElementById('authModal').classList.remove('hidden');
               document.getElementById('mainApp').classList.add('hidden');
             }
@@ -412,6 +426,7 @@
       const docRef = doc(db, "users", currentUser.uid);
 
       onSnapshot(docRef, (docSnap) => {
+        isDataLoadedFromCloud = true;
         if (docSnap.exists()) {
           const data = docSnap.data();
           appData.transactions = data.transactions || [];
@@ -427,13 +442,20 @@
 
           updateUI();
         }
+      }, (error) => {
+        showCloudStatus("Error de permisos en Firebase: Actualiza las Reglas en la consola.", true);
       });
     }
 
     async function saveToCloud() {
-      if (!currentUser) return;
+      if (!currentUser || !isDataLoadedFromCloud) return;
       const { db, doc, setDoc } = window.firebaseAuth;
-      await setDoc(doc(db, "users", currentUser.uid), appData);
+      try {
+        await setDoc(doc(db, "users", currentUser.uid), appData);
+        showCloudStatus("Guardado en la Nube ✓");
+      } catch (err) {
+        showCloudStatus("Error al guardar en la nube. Revisa las reglas de Firestore.", true);
+      }
     }
 
     document.getElementById('goalSelector').addEventListener('change', (e) => {
@@ -723,7 +745,6 @@
       });
     }
 
-    // GENERADOR DINÁMICO DE CONSEJOS ESTRATÉGICOS (ANALIZA CADA CASO EN TIEMPO REAL)
     function generateSmartAdvice(goalName, saved, totalCost, weeklyIncomes, monthlyIncomes) {
       const remaining = Math.max(totalCost - saved, 0);
       const ratio = totalCost > 0 ? ((saved / totalCost) * 100).toFixed(0) : 0;
@@ -748,11 +769,9 @@
         }
       }
 
-      // Seleccionar un consejo aleatorio según el estado actual para que varíe siempre
       return tips[Math.floor(Math.random() * tips.length)];
     }
 
-    // CONSULTA INTELIGENTE CON FALLBACK AUTOMÁTICO
     document.getElementById('askAiBtn').addEventListener('click', async () => {
       const activeGoal = appData.goals[appData.activeGoalIndex];
       if (!activeGoal) return;
@@ -775,7 +794,6 @@
 
       let success = false;
 
-      // Intento 1: Llamada a API Gemini
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
         
@@ -800,7 +818,6 @@
         success = false;
       }
 
-      // Intento 2: Fallback Dinámico Inteligente (Genera respuestas personalizadas con cifras reales si falla la API)
       if (!success) {
         const dynamicAdvice = generateSmartAdvice(activeGoal.item, walletBalance, activeGoal.cost, weeklyIncomes, monthlyIncomes);
         aiDiv.innerHTML = `<p class="text-zinc-300 text-xs text-left">${dynamicAdvice}</p>`;
