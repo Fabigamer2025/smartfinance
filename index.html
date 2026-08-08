@@ -88,6 +88,10 @@
       </div>
 
       <div class="flex items-center gap-2">
+        <button onclick="setApiKeyPrompt()" class="text-xs bg-zinc-950 border border-zinc-800 text-amber-400 px-2.5 py-1.5 rounded-lg font-semibold active:scale-95 transition-all" title="Configurar API Key de Gemini">
+          <i class="fa-solid fa-key mr-1"></i> Key
+        </button>
+
         <button id="viewToggleBtn" onclick="toggleViewMode()" class="text-xs bg-zinc-950 border border-zinc-800 text-emerald-400 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 active:scale-95 transition-all">
           <i id="viewToggleIcon" class="fa-solid fa-mobile-screen"></i>
           <span id="viewToggleText">Modo PC</span>
@@ -142,7 +146,7 @@
           </form>
         </div>
 
-        <!-- REGISTRO DINERO Y SALARIOS -->
+        <!-- REGISTRO DINERO -->
         <div id="card-tx-form" class="bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
           <h2 class="text-xs font-bold text-zinc-200 uppercase tracking-wider mb-3">Registrar Dinero / Salario</h2>
           <form id="transactionForm" class="space-y-3">
@@ -155,7 +159,7 @@
                 </select>
               </div>
               <div>
-                <label class="block text-[10px] font-medium text-zinc-400 mb-1">Frecuencia / Recurrencia</label>
+                <label class="block text-[10px] font-medium text-zinc-400 mb-1">Recurrencia</label>
                 <select id="txRecurrence" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-2 text-white text-xs outline-none">
                   <option value="once">Puntual (Único)</option>
                   <option value="weekly">🔄 Salario Semanal</option>
@@ -167,11 +171,11 @@
             <div class="grid grid-cols-2 gap-2">
               <div>
                 <label class="block text-[10px] font-medium text-zinc-400 mb-1">Monto (Gs.)</label>
-                <input type="number" id="txAmount" required placeholder="Ej: 2500000" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-white text-xs outline-none">
+                <input type="number" id="txAmount" required placeholder="Ej: 200000" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-white text-xs outline-none">
               </div>
               <div>
                 <label class="block text-[10px] font-medium text-zinc-400 mb-1">Detalle</label>
-                <input type="text" id="txNote" placeholder="Ej: Salario de trabajo" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-white text-xs outline-none">
+                <input type="text" id="txNote" placeholder="Ej: Sueldo / Ahorro" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-white text-xs outline-none">
               </div>
             </div>
 
@@ -207,10 +211,10 @@
         <!-- ASESOR IA -->
         <div id="card-ai" class="bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
           <div class="flex justify-between items-center mb-2">
-            <span class="text-xs font-bold text-zinc-200">Asesor IA</span>
+            <span class="text-xs font-bold text-zinc-200">Asesor IA (Gemini)</span>
             <button id="askAiBtn" class="text-[10px] bg-zinc-950 border border-zinc-800 text-emerald-400 px-2 py-1 rounded font-semibold">Consultar</button>
           </div>
-          <div id="aiResponse" class="text-xs text-zinc-400">Presiona consultar para recibir un análisis de tu salario y metas.</div>
+          <div id="aiResponse" class="text-xs text-zinc-400">Presiona consultar para recibir un análisis con Google Gemini.</div>
         </div>
 
       </div>
@@ -234,7 +238,6 @@
   </div>
 
   <script>
-    const GROQ_API_KEY = "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";
     let currentUser = null;
     let isRegisterMode = false;
     let isPcMode = window.innerWidth >= 768;
@@ -243,6 +246,16 @@
 
     function formatPYG(amount) {
       return "Gs. " + new Intl.NumberFormat('es-PY').format(amount || 0);
+    }
+
+    // GESTIÓN SEGURA DE API KEY EN LOCALSTORAGE (EVITA BLOQUEOS DE GITHUB)
+    function setApiKeyPrompt() {
+      const currentKey = localStorage.getItem('gemini_key') || '';
+      const key = prompt("Pega aquí tu API Key de Google Gemini:", currentKey);
+      if (key !== null) {
+        localStorage.setItem('gemini_key', key.trim());
+        alert("API Key de Gemini guardada correctamente.");
+      }
     }
 
     window.toggleViewMode = function() {
@@ -718,18 +731,23 @@
       });
     }
 
-    // DIAGNÓSTICO IA MEJORADO CON CÁLCULO DE SALARIOS Y CONSEJOS DIRECTOS
+    // CONSULTA A GEMINI LEIENDO LA CLAVE DESDE LOCALSTORAGE
     document.getElementById('askAiBtn').addEventListener('click', async () => {
       const activeGoal = appData.goals[appData.activeGoalIndex];
       if (!activeGoal) return;
 
+      const userKey = localStorage.getItem('gemini_key');
+      if (!userKey) {
+        setApiKeyPrompt();
+        return;
+      }
+
       const aiDiv = document.getElementById('aiResponse');
-      aiDiv.innerHTML = "<p class='animate-pulse text-emerald-400 text-xs'>Analizando capacidad de ahorro...</p>";
+      aiDiv.innerHTML = "<p class='animate-pulse text-emerald-400 text-xs'>Consultando Google Gemini...</p>";
 
       const walletBalance = calculateWalletBalance();
       const remaining = Math.max(activeGoal.cost - walletBalance, 0);
 
-      // CALCULAR SALARIOS / INGRESOS RECURRENTES DEL USUARIO
       const weeklyIncomes = (appData.transactions || [])
         .filter(t => t.type === 'deposit' && t.recurrence === 'weekly')
         .reduce((acc, t) => acc + t.amount, 0);
@@ -738,41 +756,31 @@
         .filter(t => t.type === 'deposit' && t.recurrence === 'monthly')
         .reduce((acc, t) => acc + t.amount, 0);
 
-      const promptText = `Meta: ${activeGoal.item}, Costo Total: ${formatPYG(activeGoal.cost)}, Ahorrado: ${formatPYG(walletBalance)}, Faltante: ${formatPYG(remaining)}. Salario/Ingreso semanal: ${formatPYG(weeklyIncomes)}, Salario/Ingreso mensual: ${formatPYG(monthlyIncomes)}. Da una estrategia o consejo financiero unico en maximo 2 oraciones para acelerar la compra de esta meta. No repitas la frase 'Para alcanzar tu Porsche' ni repitas porcentajes evidentes. Sin asteriscos.`;
+      const promptText = `Eres un asesor financiero inteligente. Meta actual del usuario: ${activeGoal.item}, Costo Total: ${formatPYG(activeGoal.cost)}, Ahorrado: ${formatPYG(walletBalance)}, Faltante: ${formatPYG(remaining)}. Salario semanal: ${formatPYG(weeklyIncomes)}, Salario mensual: ${formatPYG(monthlyIncomes)}. Da una estrategia o consejo financiero corto para acelerar este objetivo en maximo 2 oraciones. Sin asteriscos.`;
 
       try {
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${userKey}`;
+        
+        const response = await fetch(url, {
           method: "POST",
-          headers: { 
-            "Authorization": `Bearer ${GROQ_API_KEY}`, 
-            "Content-Type": "application/json" 
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            model: "llama-3.3-70b-versatile",
-            messages: [
-              { role: "system", content: "Eres un analista financiero inteligente. Analizas los ingresos y metas del usuario y das recomendaciones directas, variadas y profesionales. Respondes en maximo 2 oraciones y sin usar asteriscos ni negritas." },
-              { role: "user", content: promptText }
-            ],
-            temperature: 0.7
+            contents: [{
+              parts: [{ text: promptText }]
+            }]
           })
         });
 
         const data = await response.json();
-        let reply = data.choices?.[0]?.message?.content;
+        let reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
         
-        if (reply && reply.length > 5) {
+        if (reply) {
           aiDiv.innerHTML = `<p class="text-zinc-200 text-xs text-left">${reply.replace(/\*/g, "").trim()}</p>`;
         } else {
-          throw new Error("Respuesta inválida");
+          throw new Error("Error en respuesta");
         }
       } catch (err) {
-        // RESPALDO DINÁMICO SEGÚN SALARIOS
-        let advice = "";
-        if (monthlyIncomes > 0 || weeklyIncomes > 0) {
-          advice = `Considera destinar al menos un 20% de tu ingreso recurrente registrado exclusivamente a esta meta para reducir considerablemente el tiempo estimado de compra.`;
-        } else {
-          advice = `Registra tus ingresos o salarios recurrentes en la pestaña de dinero para que pueda calcular exactamente tu velocidad de ahorro y sugerirte un plan a medida.`;
-        }
+        let advice = "Para acelerar tu compra, destina automáticamente un porcentaje fijo de tus ingresos semanales a un fondo de reserva antes de realizar egresos personales.";
         aiDiv.innerHTML = `<p class="text-zinc-300 text-xs text-left">${advice}</p>`;
       }
     });
