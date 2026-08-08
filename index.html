@@ -142,7 +142,7 @@
           </form>
         </div>
 
-        <!-- REGISTRO DINERO Y RECURRENCIA -->
+        <!-- REGISTRO DINERO -->
         <div id="card-tx-form" class="bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
           <h2 class="text-xs font-bold text-zinc-200 uppercase tracking-wider mb-3">Registrar Dinero</h2>
           <form id="transactionForm" class="space-y-3">
@@ -409,9 +409,20 @@
       onSnapshot(docRef, (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
-          appData.goals = data.goals || [];
-          appData.activeGoalIndex = data.activeGoalIndex || 0;
+          
+          // MIGRACIÓN AUTOMÁTICA DE DATOS VIEJOS A NUEVOS
           appData.transactions = data.transactions || [];
+          appData.activeGoalIndex = data.activeGoalIndex || 0;
+
+          if (data.goals && Array.isArray(data.goals)) {
+            appData.goals = data.goals;
+          } else if (data.item && data.cost) {
+            // Convertir la meta vieja de la versión anterior a la lista nueva
+            appData.goals = [{ item: data.item, cost: data.cost, targetDate: data.targetDate || '' }];
+          } else {
+            appData.goals = [];
+          }
+
           updateUI();
         }
       });
@@ -710,7 +721,7 @@
       });
     }
 
-    // DIAGNÓSTICO ESTRATÉGICO IA
+    // DIAGNÓSTICO ESTRATÉGICO IA CON CONSEJOS DIRECTOS
     document.getElementById('askAiBtn').addEventListener('click', async () => {
       const activeGoal = appData.goals[appData.activeGoalIndex];
       if (!activeGoal) return;
@@ -720,7 +731,6 @@
 
       const walletBalance = calculateWalletBalance();
       const remaining = Math.max(activeGoal.cost - walletBalance, 0);
-      const ratio = ((walletBalance / activeGoal.cost) * 100).toFixed(0);
 
       const promptText = `Meta: ${activeGoal.item}, Ahorrado: ${formatPYG(walletBalance)}, Costo total: ${formatPYG(activeGoal.cost)}. Faltante: ${formatPYG(remaining)}. Da un consejo o recomendacion financiera estrategica para alcanzar este objetivo mas rapido en maximo 2 oraciones sin repetir los numeros que ya se ven. Sin asteriscos.`;
 
@@ -750,8 +760,7 @@
           throw new Error("Sin respuesta");
         }
       } catch (err) {
-        // RESPALDO LOCAL MOTIVADOR Y ESTRATÉGICO
-        let fallbackMsg = `Para alcanzar tu ${activeGoal.item} más rápido, considera automatizar un porcentaje de tus ingresos semanales e incrementar los egrsos prescindibles.`;
+        let fallbackMsg = `Para alcanzar tu ${activeGoal.item} más rápido, considera automatizar un porcentaje de tus ingresos semanales e incrementar los egresos prescindibles.`;
         aiDiv.innerHTML = `<p class="text-zinc-300 text-xs text-left">${fallbackMsg}</p>`;
       }
     });
